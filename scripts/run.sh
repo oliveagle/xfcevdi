@@ -22,7 +22,8 @@ sudo service ssh start
 # Start dbus system daemon
 sudo service dbus start
 # Start syslog (for debugging reasons)
-sudo service rsyslog start
+# take too long
+sudo service rsyslog start &
 
 ## Start bash and wait
 /bin/bash

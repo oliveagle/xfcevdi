@@ -19,6 +19,8 @@ WORKDIR /app
 COPY ./configs/apt.conf ./
 COPY ./scripts/apt_proxy.sh ./
 RUN ./apt_proxy.sh
+#RUN apt-get update && apt-get install apt-transport-https ca-certificates
+COPY ./sources.list /etc/apt/sources.list
 
 ## First install basic required packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -83,17 +85,22 @@ RUN apt-get install -y --no-install-recommends \
     xdg-utils \
     xz-utils \
     x11-utils \
-    x11-xkb-utils
+    x11-xkb-utils \
+    neovim \
+    exa \
+    libpq-dev \
+    python3-dev \
+    build-essential
 
 ## Add themes & fonts
-RUN apt-get install -y --no-install-recommends fonts-ubuntu breeze-gtk-theme mint-themes
+#RUN apt-get install -y --no-install-recommends fonts-ubuntu breeze-gtk-theme mint-themes
 # Don't add papirus icons (can be comment-out if you want)
 #RUN apt install -y papirus-icon-theme
 
 # Add LibreOffice
-RUN apt install -y libreoffice-base libreoffice-base-core libreoffice-common libreoffice-core libreoffice-base-drivers \
-    libreoffice-nlpsolver libreoffice-script-provider-bsh libreoffice-script-provider-js libreoffice-script-provider-python libreoffice-style-colibre \
-    libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-draw libreoffice-math
+#RUN apt install -y libreoffice-base libreoffice-base-core libreoffice-common libreoffice-core libreoffice-base-drivers \
+#    libreoffice-nlpsolver libreoffice-script-provider-bsh libreoffice-script-provider-js libreoffice-script-provider-python libreoffice-style-colibre \
+#    libreoffice-writer libreoffice-calc libreoffice-impress libreoffice-draw libreoffice-math
 
 ## Install XFCE4
 # Install XFCE4, including XFCE panels, terminal, screenshooter, task manager, notify daemon, dbus, locker and plugins.
