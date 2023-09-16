@@ -20,7 +20,7 @@ COPY ./configs/apt.conf ./
 COPY ./scripts/apt_proxy.sh ./
 RUN ./apt_proxy.sh
 #RUN apt-get update && apt-get install apt-transport-https ca-certificates
-COPY ./sources.list /etc/apt/sources.list
+COPY ./configs/sources.list /etc/apt/sources.list
 
 ## First install basic required packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -90,7 +90,13 @@ RUN apt-get install -y --no-install-recommends \
     exa \
     libpq-dev \
     python3-dev \
-    build-essential
+    python3-pip \
+    build-essential \
+    pkg-config \
+    cmake \
+    fonts-wqy-microhei \
+    fonts-hack-ttf
+
 
 ## Add themes & fonts
 #RUN apt-get install -y --no-install-recommends fonts-ubuntu breeze-gtk-theme mint-themes
@@ -129,8 +135,8 @@ RUN rm -rf /etc/ssh/ssh_host_* && ssh-keygen -A
 RUN apt-get clean -y && rm -rf /usr/share/doc/* /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apk/*
 
 # Update timezone to The Netherlands
-RUN echo 'Europe/Amsterdam' >/etc/timezone
-RUN unlink /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
+RUN echo 'Aisa/Shanghai' >/etc/timezone
+RUN unlink /etc/localtime && ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 
 # Start default XFCE4 panels (don't ask for it)
 RUN mv -f /etc/xdg/xfce4/panel/default.xml /etc/xdg/xfce4/xfconf/xfce-perchannel-xml/xfce4-panel.xml
@@ -157,6 +163,8 @@ COPY ./configs/terminalrc ./
 COPY ./configs/whiskermenu-1.rc ./
 COPY ./scripts/xfce_settings.sh ./
 COPY ./scripts/run.sh ./
+COPY ./configs/pip.conf /root/.pip/pip.conf
+
 # Print hello during worker bash start-up
 RUN echo 'echo "Info: Thank you for using Melroys VDI XFCE Docker image!"' >>/app/.bashrc
 

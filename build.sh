@@ -1,1 +1,3 @@
-docker build -t xfcevdi:dev .
+#CMD=docker
+CMD=podman
+$CMD build -t xfcevdi:dev .

@@ -149,3 +149,25 @@ This error means that you are using an old SSH host key.
 **Solution:** Try not to terminate the session and when X2Go client ask you to update the host key, choose 'yes'. This will replace the old host key with the new key.
 
 **Root-cause:** Each time you setup a new VDI Docker container, a new SSH host key is generated for you.
+
+
+
+## x2go glx 1.2 problems
+
+>> 这个问题是不是根本就不需要解决。看起来tws报的错并不影响使用。 稳定性主要还是网络和对端服务.
+
+```bash
+pip install meson
+pip install mako
+
+# 需要打开sources.list 中的 deb-src 源，然后 apt update
+apt-get build-dep mesa
+
+# mesa 的版本不能太高， mesa-20.2.2 可以编译通过
+# apt-get install mesa-utils
+```
+
+## Fonts
+
+- 中文： fonts-wqy-microhei
+- console: fonts-hack-ttf
