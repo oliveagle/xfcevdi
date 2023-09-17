@@ -95,7 +95,8 @@ RUN apt-get install -y --no-install-recommends \
     pkg-config \
     cmake \
     fonts-wqy-microhei \
-    fonts-hack-ttf
+    fonts-hack-ttf \
+    cron
 
 
 ## Add themes & fonts
@@ -156,7 +157,7 @@ RUN usermod -s /usr/sbin/nologin root
 RUN useradd -d /app -s /bin/bash -u 1001 worker
 RUN echo "Defaults!/app/setup.sh setenv" >>/etc/sudoers
 # Limit the execute of the following commands of the worker user
-RUN echo "worker ALL=(root) NOPASSWD:/usr/sbin/service ssh start, /usr/sbin/service dbus start, /usr/sbin/service rsyslog start, /app/setup.sh" >>/etc/sudoers
+RUN echo "worker ALL=(root) NOPASSWD:/usr/sbin/service ssh start, /usr/sbin/service dbus start, /usr/sbin/service rsyslog start, /usr/sbin/service cron start, /app/setup.sh" >>/etc/sudoers
 # Copy worker scripts
 COPY ./scripts/setup.sh ./
 COPY ./configs/terminalrc ./
