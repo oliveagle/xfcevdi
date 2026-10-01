@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Change some settings of XFCE4 look & feel
 
-if [ ! -f /home/$USER/.local/.xfce_settings_done ]; then
+if [ ! -f /home/"$USER"/.local/.xfce_settings_done ]; then
   # Additional changes to XFCE settings (xsettings.xml)
   xfconf-query -c xsettings -p /Net/ThemeName -s "Breeze-Dark"
   xfconf-query -c xsettings -p /Net/IconThemeName -s "Mint-Y-Dark-Aqua"
@@ -15,12 +15,12 @@ if [ ! -f /home/$USER/.local/.xfce_settings_done ]; then
   xfconf-query -c xfwm4 -p /general/use_compositing -t bool -s false
 
   # Move terminalrc config to correct location
-  mkdir -p /home/$USER/.config/xfce4/terminal/
-  cp -rf /app/terminalrc /home/$USER/.config/xfce4/terminal/
+  mkdir -p /home/"$USER"/.config/xfce4/terminal/
+  cp -rf /app/terminalrc /home/"$USER"/.config/xfce4/terminal/
 
   # Use custom whisker menu settings
-  mkdir -p /home/$USER/.config/xfce4/panel/
-  cp -rf /app/whiskermenu-1.rc /home/$USER/.config/xfce4/panel/
+  mkdir -p /home/"$USER"/.config/xfce4/panel/
+  cp -rf /app/whiskermenu-1.rc /home/"$USER"/.config/xfce4/panel/
 
   # Change default menu to whisker menu
   xfconf-query -c xfce4-panel -p /plugins/plugin-1 -s "whiskermenu"
@@ -43,7 +43,7 @@ if [ ! -f /home/$USER/.local/.xfce_settings_done ]; then
     PID_ID=$(pidof xfce4-panel)
     if [ -n "$PID_ID" ]; then
       launchName="launcher-19"
-      filename=$(ls /home/$USER/.config/xfce4/panel/$launchName/ | head -1)
+      filename=$(find /home/"$USER"/.config/xfce4/panel/"$launchName"/ -maxdepth 1 -type f | head -1 | xargs -r basename)
       filepath="/home/$USER/.config/xfce4/panel/$launchName/$filename"
       # Check if file is already present
       if [ -f "$filepath" ]; then
@@ -57,9 +57,9 @@ if [ ! -f /home/$USER/.local/.xfce_settings_done ]; then
         break
       fi
       # Increase timer
-      let COUNTER++
+      (( COUNTER++ ))
     fi
   done
 
-  touch /home/$USER/.local/.xfce_settings_done
+  touch /home/"$USER"/.local/.xfce_settings_done
 fi

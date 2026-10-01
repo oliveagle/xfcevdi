@@ -2,19 +2,20 @@ version: "3.8"
 
 services:
   xfcevdi:
-    image: danger89/xfcevdi_x2go:latest
+    build: .
+    image: xfcevdi:dev
     tty: true
-    container_name: melroy_vdi
+    container_name: xfcevdi_mt5
     restart: unless-stopped
-    networks:
-      - xfce_vdi_network
     environment:
-      USERNAME: melroy
+      USERNAME: trader
       PASS: abc
-      # ENTER_PASS: 'yes'
-      # ALLOW_APT: 'no'
+      # MetaTrader 5 auto-install / auto-update switches
+      MT5_INSTALL: "yes"
+      MT5_AUTOUPDATE: "yes"
+      # MT5_SETUP_URL: https://your-mirror/mt5setup.exe   # if MetaQuotes CDN is blocked
     volumes:
-      # Make home mount persistent across restarts
+      # Persistent home (includes the user's Wine prefix ~/.mt5 with MT5)
       - ./home_storage:/home
       - type: tmpfs
         target: /dev/shm

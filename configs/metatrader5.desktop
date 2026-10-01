@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=MetaTrader 5
+GenericName=Trading Terminal
+Comment=MetaTrader 5 trading platform (Wine)
+Exec=/usr/local/bin/mt5-launch
+Icon=metatrader5
+Terminal=false
+Categories=Finance;Office;
+StartupNotify=true

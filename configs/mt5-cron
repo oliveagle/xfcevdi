@@ -1,0 +1,11 @@
+# /etc/cron.d/mt5-autoupdate
+#
+# PLACEHOLDER: this entry is intentionally inert (all lines commented out).
+# On first container start, scripts/setup.sh overwrites this file with an
+# active, user-scoped entry so the upgrade runs as the real MT5 user (not
+# root), keeping the Wine prefix in the user's persistent home.
+#
+# Template (uncommented by setup.sh with the real $USERNAME):
+# SHELL=/bin/bash
+# PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# 0 */6 * * * <username> flock -n /tmp/mt5-autoupdate.lock /usr/local/bin/mt5-autoupdate >>/var/log/mt5-autoupdate.log 2>&1

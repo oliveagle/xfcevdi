@@ -1,173 +1,123 @@
-# XFCE VDI (using X2Go)
+# XFCE VDI (using X2Go) + MetaTrader 5
 
-Docker image for running [Debian](https://hub.docker.com/_/debian) and [XFCE](https://www.xfce.org/) by leveraging the [X2Go protocol](https://wiki.x2go.org/doku.php/download:start).
+Docker image for running [Debian](https://hub.docker.com/_/debian) + [XFCE](https://www.xfce.org/) accessible over [X2Go](https://wiki.x2go.org/), with **MetaTrader 5** pre-packaged and able to auto-install / auto-upgrade.
 
 ## Purpose
 
-This docker image enables you to start one or more instances of a Virtual Desktop Infrastructure (VDI). Without the need of VM's!
+- Spin up a full Linux virtual desktop inside Docker (no VM), reachable via X2Go.
+- MetaTrader 5 runs on Linux via Wine, installed into a per-user Wine prefix (`~/.mt5`), with automatic upgrade through the official web-installer.
+- The whole stack is built on **Debian 12 (bookworm)**.
 
-- By utilizing [Docker containers](https://www.docker.com/resources/what-container), there will be **NO** boot of whole operating system (like VMs do), instead docker will use the OS kernel resources and shares them with the docker container. Resulting in much faster start-up times than VMs can every do.
+## Software stack
 
-- By using the [X2Go protocol](https://wiki.x2go.org/) it's easy to connect/share sessions between the client and the server. Which allows remote working or any other task you might want do remotely in a windowing system.
+| Layer                     | Version / source                |
+|---------------------------|---------------------------------|
+| Base image                | `debian:bookworm-slim`          |
+| Desktop                   | XFCE 4.18                       |
+| Remote desktop            | X2Go 4.1 (server + session)     |
+| Browser                   | Firefox ESR                     |
+| Wine                      | WineHQ stable (bookworm)        |
+| MetaTrader 5              | auto-installed from mt5setup.exe (last Docker layer) |
+| Dev toolchain             | gcc, clang, cmake, ninja, valgrind, clang-format/tidy, pytest, shellcheck, etc. |
 
-- The image contains a [docker GNU/Linux Debian](https://hub.docker.com/_/debian) (bullseye) operating system, together with XFCE4 desktop environment. The required X2Goserver/X2Gosession are already pre-installed.
+## MetaTrader 5 on Linux (why and how)
 
-- In fact, this Docker image has alot of packages pre-installed you probably want anyway, including but not limited to: `Firefox`, `LibreOffice`, `gnome-calculator`, `archiver`, `file manager`, `text editor`, `image viewer`, `htop`, `clipboard manager` and much more.
+MetaTrader 5 does not ship a native Linux binary. The official install path is the Windows installer `mt5setup.exe` run under Wine, documented by MetaQuotes in
+[Running MetaTrader 5 on Linux](https://www.mql5.com/zh/articles/625) and
+[Installation on Linux](https://www.metatrader5.com/en/terminal/help/start_advanced/install_linux).
 
-- Last but not least, the image is preconfigured with a nice dark-theme (Breeze-Dark), window theme (Mint-Y-Dark) as well as a nice looking icon set (Mint-Y-Dark-Aqua) and uses Ubuntu fonts by default. See below an preview:
+MT5 ships as a **web-installer** and auto-updates itself on every launch. Because it updates very frequently, this image puts **MT5 into the last Docker layer**:
 
-![Preview 1](preview.png)
+1. Every lower layer (OS, desktop, Wine, dev toolchain) stays cached.
+2. Rebuilding the image re-fetches only the MT5 installer, so the newest MT5 build is always picked up.
+3. The installer script `/usr/local/bin/mt5-install` is idempotent and runs:
+   - on **first container start** (`scripts/setup.sh`), installing MT5 into the new user's `~/.mt5` Wine prefix;
+   - on **first launch** from the XFCE application menu (`metatrader5.desktop` → `/usr/local/bin/mt5-launch`);
+   - **every 6 hours** via cron (`/etc/cron.d/mt5-autoupdate`), so a new build is picked up even if the user never reopens the terminal.
 
-Or an example with Papirus icons:
+### How the installer works
 
-![Preview 2](preview_papirus.png)
+| Script                     | Purpose                                                        |
+|----------------------------|----------------------------------------------------------------|
+| `/usr/local/bin/mt5-install`   | Download `mt5setup.exe` (and WebView2), run it with `/auto` under the user's Wine prefix, then record a stamp so the next run is a fast no-op. |
+| `/usr/local/bin/mt5-autoupdate` | Wrap `mt5-install --force` with flock + logging; used by cron. |
+| `/usr/local/bin/mt5-launch`     | Install (if missing), then launch `terminal64.exe` inside the X session. |
 
-_Note 1:_ You can always remove/install additional packages. By using the Docker container and apt command line (this won't be permanent). Or ideally, by changing [Dockerfile](Dockerfile) or extending the Docker image instead via: `FROM danger89/xfcevdi_x2go` in your own Dockerfile.
+You can also trigger them manually from the user's shell:
 
-_Note 2:_ Optionally adapt the [XFCE settings script](xfce_settings.sh) to your needs. Eg. when you installed the Papirus icon theme and you want to use use the Papirus icons instead Mint-Y-Dark-Aqua icons.
+```bash
+mt5-install         # install or update (no-op if already up to date)
+mt5-install --force # force a reinstall / upgrade
+mt5-install --check # show current status
+mt5                 # launch the terminal (installs first if needed)
+```
+
+Environment variables (all optional):
+
+| Variable                  | Default                        | Description                             |
+|---------------------------|--------------------------------|-----------------------------------------|
+| `MT5_SETUP_URL`           | MetaQuotes CDN                 | Override if a mirror is needed.         |
+| `MT5_INSTALL`             | `yes`                          | Install MT5 on first container start.   |
+| `MT5_AUTOUPDATE`          | `yes`                          | Register the 6-hour cron upgrade.       |
+| `MT5_INSTALL_WEBVIEW2`    | `yes`                          | Also install the WebView2 runtime.      |
+| `MT5_CACHE_DIR`           | `/var/cache/mt5`               | Shared cache for the installer.         |
 
 ## Usage
 
-You could use the `docker` CLI or Docker Compose (`docker compose`).
-
-_Note:_ The Docker image will be retrieved automatically from [DockerHub](https://hub.docker.com/r/danger89/xfcevdi_x2go).
-
 ### Docker
 
-Start the docker container using (with default username: `user`, password: _is auto-generated_, port: `2222`):
+```sh
+docker run --shm-size 2g -it --rm -p 2222:22 xfcevdi:dev
+```
+
+Or with a custom username and password:
 
 ```sh
-docker run --shm-size 2g -it --rm -p 2222:22 danger89/xfcevdi_x2go:latest
+docker run --shm-size 2g -it --rm -p 2222:22 -e USERNAME=trader -e PASS=secret xfcevdi:dev
 ```
 
-Or with the username `melroy` with password `abc` on port: `2222`:
+### Docker Compose
 
 ```sh
-docker run --shm-size 2g -it --rm -p 2222:22 -e USERNAME=melroy -e PASS=abc danger89/xfcevdi_x2go:latest
+docker compose up
 ```
 
-Or make home mount persistent between restarts:
+Connect with the X2Go client to `localhost:2222`, user `trader` (or `user` by default), then launch **MetaTrader 5** from the applications menu.
+
+## Development & testing
+
+The full "build → lint → test" workflow is automated:
 
 ```sh
-docker run --shm-size 2g -it --rm -v $(pwd)/vdi_home:/home -p 2222:22 danger89/xfcevdi_x2go:latest
+make lint      # shellcheck + bash -n on scripts/
+make build     # build the container image
+make test      # lint + build + MT5 layer check + runtime smoke test
+make shell     # interactive shell inside the built image
 ```
 
-See "X2Go Clients" section below how to connect.
-
-## Docker Compose
-
-You can also use of [Docker Compose](https://docs.docker.com/compose/)!
-
-**Adapt** the [compose.yaml](compose.yaml) file to your needs, and start the Docker container using: `docker compose up`
-
-See "X2Go Clients" section below how to connect.
-
-_Note:_ If you installed Docker Compose manually using the script, then the script name is: `docker-compose` iso `docker compose`.
-
-## Environment variables
-
-_Important:_ By default the user can install new software using APT (eg. `sudo apt install`) and without providing it's password. You can set `ALLOW_APT` to `no` to disable the use of APT all together.
-
-You can either change the environment variables using `-e` flag during `docker run` _or_ by changing just the `environment` section in the `compose.yaml` file.
-
-Docker run example with `-e` flag which disables APT for the default user: `docker run --shm-size 2g -it -e ALLOW_APT=no -p 2222:22 danger89/xfcevdi_x2go:latest`
-
-Available environment variables::
-
-| Env. variable | Type   | Description                                         | Default value         |
-| ------------- | ------ | --------------------------------------------------- | --------------------- |
-| `USERNAME`    | string | New username                                        | `user`                |
-| `USER_ID`     | string | New User/Group ID                                   | `1000`                |
-| `PASS`        | string | Change password for user                            | _auto-generated pass_ |
-| `ALLOW_APT`   | string | User is allowed to use APT commands                 | `yes`                 |
-| `ENTER_PASS`  | string | Require to enter password for specific APT commands | `no`                  |
-
-**NOTE 1:** Since [XFCE VDI v2.0](https://hub.docker.com/r/danger89/xfcevdi_x2go/tags), the new user is _only allowed_ to execute `apt` commands as root user. What can be changed on line 54 & 56 in [setup.sh script](scripts/setup.sh#L54) and build your own Docker image.
-
-**NOTE 2:** Since [XFCE VDI v2.0](https://hub.docker.com/r/danger89/xfcevdi_x2go/tags) we disabled the root user completely for safety reasons. Again, you can _only_ use `sudo apt` command as the default user (called: `user`), other sudo commands are disallowed. Since v2.0 booleans are also converted to 'yes' or 'no' strings to avoid YAML syntax confusion.
-
-## Update Docker Image
-
-Leveraging Docker Compose, use:
-
-1. Stop: `docker compose down`
-2. Update: `docker compose pull xfcevdi`
-3. Start again: `docker compose up -d` (runs in detached mode)
-
-_Note:_ If you installed Docker Compose manually using the script, then the script name is: `docker-compose` iso `docker compose`.
-
-Using Docker CLI:
-
-1. Stop docker container: `docker stop <container_id>`
-2. Update: `docker pull danger89/xfcevdi_x2go`
-3. Start again: `docker run`
-
-## X2Go Clients
-
-X2Go has two clients available to choose from:
-
-- X2Go Client (recommended)
-- PyHoca-GUI
-
-Which can both be [downloaded from their site](https://wiki.x2go.org/doku.php/download:start). Clients are available for Windows/Mac and/or GNU/Linux operating systems.
-
-Once you open the client, create a new session by providing the following settings (default settings):
-
-- Host: host IP addresss (or domain name or `localhost`)
-- Login: `user` (default username)
-- SSH port: `2222` (default port)
-- Session type: `XFCE` (select from drop-down menu)
-
-Once you try to connect, accept the new SSH host key and you'll require to enter a password (by default the **passwords are auto-generated**!).
-
-## Build
-
-You do _not_ need to build the image yourself, instead try to use the pre-build [Docker image](https://hub.docker.com/r/danger89/xfcevdi_x2go). See also "Usage" above.
-
-If you want, you could build the image locally, using the command:
+Static test helpers (no container build required):
 
 ```sh
-docker build --tag danger89/xfcevdi_x2go .
+bash tests/test_dockerfile.sh   # verify bookworm stack and MT5 last layer
+bash tests/test_mt5_layer.sh    # verify MT5 instructions are in the last layer
+bash tests/test_ci.sh           # verify CI workflow shape
 ```
 
-### Apt-Cacher (OPTIONAL!)
+CI runs `lint`, `hadolint`, `make build`, the MT5 layer check, and the runtime smoke test on every push/PR.
 
-When you have [apt-cacher](http://manpages.ubuntu.com/manpages/jammy/man8/apt-cacher.8.html) or [apt-cacher-ng](http://manpages.ubuntu.com/manpages/jammy/en/man8/apt-cacher-ng.8.html) proxy installed, use `APT_PROXY` parameter to set the proxy URL; where `melroy-pc` is _your_ hostname:
+## Configuration files
 
-**Important:** Be sure you configured `apt-cacher` correctly to accept incoming connections from Docker. Set: `allowed_hosts = *` in `/etc/apt-cacher/apt-cacher.conf` file.
+| File                              | Purpose                                    |
+|-----------------------------------|--------------------------------------------|
+| `configs/sources.list`            | Debian 12 mirror (USTC).                   |
+| `configs/sources.list.tuna`       | Alternative Tsinghua mirror.               |
+| `configs/x2go.list`               | X2Go repository (bookworm).                |
+| `configs/metatrader5.desktop`     | XFCE application launcher entry for MT5.   |
+| `configs/mt5-cron`                | Default MT5 upgrade cron entry.            |
+| `scripts/mt5-install.sh`          | Idempotent MT5 installer / updater.        |
+| `scripts/mt5-autoupdate.sh`       | Cron wrapper with flock + logging.         |
+| `scripts/mt5-launch.sh`           | Launch (install if needed) MetaTrader 5.   |
 
-```sh
-docker build --build-arg APT_PROXY=http://melroy-pc:3142 --tag danger89/xfcevdi_x2go .
-```
+## Licence
 
-## Common issues
-
-### Host key verification failed
-
-This error means that you are using an old SSH host key.
-
-**Solution:** Try not to terminate the session and when X2Go client ask you to update the host key, choose 'yes'. This will replace the old host key with the new key.
-
-**Root-cause:** Each time you setup a new VDI Docker container, a new SSH host key is generated for you.
-
-
-
-## x2go glx 1.2 problems
-
->> 这个问题是不是根本就不需要解决。看起来tws报的错并不影响使用。 稳定性主要还是网络和对端服务.
-
-```bash
-pip install meson
-pip install mako
-
-# 需要打开sources.list 中的 deb-src 源，然后 apt update
-apt-get build-dep mesa
-
-# mesa 的版本不能太高， mesa-20.2.2 可以编译通过
-# apt-get install mesa-utils
-```
-
-## Fonts
-
-- 中文： fonts-wqy-microhei
-- console: fonts-hack-ttf
+[GPL-3.0](LICENSE)

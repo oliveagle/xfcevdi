@@ -1,8 +1,8 @@
-deb http://mirrors.ustc.edu.cn/debian bullseye main
-deb-src http://mirrors.ustc.edu.cn/debian bullseye main
+deb http://mirrors.ustc.edu.cn/debian bookworm main contrib non-free
+deb-src http://mirrors.ustc.edu.cn/debian bookworm main contrib non-free
 
-deb http://mirrors.ustc.edu.cn/debian-security/ bullseye-security main
-deb-src http://mirrors.ustc.edu.cn/debian-security/ bullseye-security main
+deb http://mirrors.ustc.edu.cn/debian-security/ bookworm-security main contrib non-free
+deb-src http://mirrors.ustc.edu.cn/debian-security/ bookworm-security main contrib non-free
 
-deb http://mirrors.ustc.edu.cn/debian bullseye-updates main
-deb-src http://mirrors.ustc.edu.cn/debian bullseye-updates main
+deb http://mirrors.ustc.edu.cn/debian bookworm-updates main contrib non-free
+deb-src http://mirrors.ustc.edu.cn/debian bookworm-updates main contrib non-free

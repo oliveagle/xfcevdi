@@ -1,0 +1,12 @@
+.git
+.github
+tests
+Makefile
+justfile
+README.md
+LICENSE
+preview.png
+preview_papirus.png
+CODEOWNERS
+compose.yaml
+home_storage
