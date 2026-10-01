@@ -37,3 +37,12 @@ jobs:
 
       - name: Runtime smoke test
         run: bash tests/test_smoke.sh
+
+      - name: Compile & test toolchain
+        run: bash tests/test_toolchain.sh
+
+      - name: First-boot setup (user + MT5 cron)
+        run: bash tests/test_setup_cron.sh
+
+      - name: MT5 auto-upgrade logic
+        run: docker run --rm -v "$PWD/tests:/tests:ro" --entrypoint /bin/bash xfcevdi:dev -c 'bash /tests/test_mt5_install.sh'
