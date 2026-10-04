@@ -383,4 +383,36 @@ RUN echo "worker ALL=(root) NOPASSWD:/usr/local/bin/mt5-install, /usr/local/bin/
 
 USER worker
 EXPOSE 22
-CMD ["/bin/bash", "/app/run.sh"]
+
+# ---------------------------------------------------------------------------
+# 19. Production runtime: supervisor + Xvfb + Mojo guard + entrypoint
+#     (7x24 supervisord-managed stack)
+# ---------------------------------------------------------------------------
+USER root
+RUN set -eux; \
+    DEBIAN_FRONTEND=noninteractive apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        supervisor \
+        xvfb; \
+    rm -rf /var/lib/apt/lists/*
+
+COPY ./supervisord-mt5.conf /etc/supervisor/conf.d/mt5.conf
+COPY ./scripts/prod-entry.sh /app/prod-entry.sh
+COPY ./assets/mojo-rt/ /opt/mojo-rt/
+
+RUN set -eux; \
+    chmod +x /app/prod-entry.sh /opt/mojo-rt/mt5_guard; \
+    mkdir -p /var/log/supervisor /run /run/sshd; \
+    # supervisord is Python: keep python3 runtime (supervisord dep),
+    # remove dev/test toolchain so no Python dev footprint remains
+    DEBIAN_FRONTEND=noninteractive apt-get purge -y \
+        python3-dev python3-pip python3-venv python3-setuptools \
+        python3-wheel python3-coverage python3-pytest pipx \
+        python3-cairo python3-attr python3-click python3-colorama \
+        python3-cffi-backend python3-cryptography 2>/dev/null || true; \
+    apt-get autoremove -y 2>/dev/null || true
+
+# Keep the MT5 Wine data (persistent volume) accessible to trader at runtime.
+ENV SUPERVISOR_CONF=/etc/supervisor/conf.d/mt5.conf
+EXPOSE 22
+CMD ["/bin/bash", "/app/prod-entry.sh"]

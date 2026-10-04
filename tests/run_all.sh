@@ -33,4 +33,7 @@ TAG="${TAG:-dev}"; export TAG
 docker run --rm -v "${SCRIPT_DIR}:/tests:ro" --entrypoint /bin/bash "${IMAGE}:${TAG}" \
   -c 'bash /tests/test_mt5_install.sh'
 
+echo "=== 9/9 production runtime (no exec: inspect + volume + ports) ==="
+bash "${SCRIPT_DIR}/test_production.sh"
+
 echo "=== all tests passed ==="

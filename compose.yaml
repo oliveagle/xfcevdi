@@ -1,28 +1,46 @@
-version: "3.8"
-
 services:
   xfcevdi:
     build: .
-    image: xfcevdi:dev
+    image: xfcevdi:prod
     tty: true
     container_name: xfcevdi_mt5
     restart: unless-stopped
     environment:
       USERNAME: trader
       PASS: abc
-      # MetaTrader 5 auto-install / auto-update switches
       MT5_INSTALL: "yes"
       MT5_AUTOUPDATE: "yes"
-      # MT5_SETUP_URL: https://your-mirror/mt5setup.exe   # if MetaQuotes CDN is blocked
     volumes:
-      # Persistent home (includes the user's Wine prefix ~/.mt5 with MT5)
-      - ./home_storage:/home
+      # Persistent home (includes the trader Wine prefix ~/.mt5 with MT5).
+      # Mounted from the parent quant_mt5 repo so xfcevdi stays pure infra.
+      - ../../runtime/home_storage:/home
       - type: tmpfs
         target: /dev/shm
         tmpfs:
           size: 2048000000 # 2GB
     ports:
-      - "2222:22"
+      - "51932:22"
+    # 7x24 log hygiene: rotate the docker json-file log so it cannot grow
+    # without bound over months of continuous operation.
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    healthcheck:
+      # Healthy only when:
+      # 1. health.json says ok=true (MT5 and Xvfb both alive)
+      # 2. health.json was written within the last 60s (guard is responsive,
+      #    prevents a frozen-but-stale file from masking a dead guard)
+      test:
+        - CMD-SHELL
+        - >-
+          grep -q '"ok":true' /home/trader/.mt5/control/health.json 2>/dev/null
+          && test $(( $(date +%s) - $(stat -c %Y /home/trader/.mt5/control/health.json 2>/dev/null || echo 0) )) -lt 60
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
 
 networks:
   xfce_vdi_network:
