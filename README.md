@@ -67,13 +67,13 @@ Environment variables (all optional):
 ### Docker
 
 ```sh
-docker run --shm-size 2g -it --rm -p 2222:22 xfcevdi:dev
+docker run --shm-size 2g -it --rm -p 21377:22 xfcevdi:dev
 ```
 
 Or with a custom username and password:
 
 ```sh
-docker run --shm-size 2g -it --rm -p 2222:22 -e USERNAME=trader -e PASS=secret xfcevdi:dev
+docker run --shm-size 2g -it --rm -p 21377:22 -e USERNAME=trader -e PASS=secret xfcevdi:dev
 ```
 
 ### Docker Compose
@@ -82,7 +82,7 @@ docker run --shm-size 2g -it --rm -p 2222:22 -e USERNAME=trader -e PASS=secret x
 docker compose up
 ```
 
-Connect with the X2Go client to `localhost:2222`, user `trader` (or `user` by default), then launch **MetaTrader 5** from the applications menu.
+Connect with the X2Go client to `localhost:21377`, user `trader` (or `user` by default), then launch **MetaTrader 5** from the applications menu.
 
 ## Development & testing
 
