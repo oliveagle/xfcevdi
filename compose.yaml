@@ -19,7 +19,7 @@ services:
         tmpfs:
           size: 2048000000 # 2GB
     ports:
-      - "21377:22"
+      - "27182:22"
     # 7x24 log hygiene: rotate the docker json-file log so it cannot grow
     # without bound over months of continuous operation.
     logging:
