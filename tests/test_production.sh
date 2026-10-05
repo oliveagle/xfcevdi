@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 QUANT_DIR="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 
 CONTAINER="${CONTAINER_NAME:-xfcevdi_mt5}"
-SSH_PORT="${SSH_PORT:-27182}"
+SSH_PORT="${SSH_PORT:-28365}"
 # Resolve the host-side path to the mounted volume. SUBMODULE_DIR lets the
 # harness override when called from outside the submodule.
 HEALTH_DIR="${SUBMODULE_DIR:-${QUANT_DIR}/runtime}/home_storage/trader/.mt5/control"
