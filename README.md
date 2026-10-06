@@ -61,30 +61,30 @@ Environment variables (all optional):
 | `MT5_AUTOUPDATE`          | `yes`                          | Register the 6-hour cron upgrade.       |
 | `MT5_INSTALL_WEBVIEW2`    | `yes`                          | Also install the WebView2 runtime.      |
 | `MT5_CACHE_DIR`           | `/var/cache/mt5`               | Shared cache for the installer.         |
-| `SSH_PORT`               | `28365`                        | Host-side SSH port in `compose.yaml` (read by compose, not the container). |
+| `SSH_PORT`               | `61473`                        | Host-side SSH port in `compose.yaml` (read by compose, not the container). |
 
 ## Usage
 
 ### Docker
 
 ```sh
-docker run --shm-size 2g -it --rm -p 28365:22 xfcevdi:dev
+docker run --shm-size 2g -it --rm -p 61473:22 xfcevdi:dev
 ```
 
 Or with a custom username and password:
 
 ```sh
-docker run --shm-size 2g -it --rm -p 28365:22 -e USERNAME=trader -e PASS=secret xfcevdi:dev
+docker run --shm-size 2g -it --rm -p 61473:22 -e USERNAME=trader -e PASS=secret xfcevdi:dev
 ```
 
 ### Docker Compose
 
 ```sh
-SSH_PORT=28365 docker compose up   # override host SSH port with SSH_PORT=<n>
+SSH_PORT=61473 docker compose up   # override host SSH port with SSH_PORT=<n>
 docker compose up
 ```
 
-Connect with the X2Go client to `localhost:28365`, user `trader` (or `user` by default), then launch **MetaTrader 5** from the applications menu.
+Connect with the X2Go client to `localhost:61473`, user `trader` (or `user` by default), then launch **MetaTrader 5** from the applications menu.
 
 ## Development & testing
 
