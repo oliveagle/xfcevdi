@@ -10,10 +10,16 @@ services:
       PASS: abc
       MT5_INSTALL: "yes"
       MT5_AUTOUPDATE: "yes"
+      # Broker-branded installer (IC Markets SC5); staged from the repo mount
+      # instead of the MetaQuotes CDN by mt5-install (see scripts/mt5-install.sh).
+      MT5_SETUP_LOCAL: /opt/mt5-setup/icmarketssc5setup.exe
     volumes:
       # Persistent home (includes the trader Wine prefix ~/.mt5 with MT5).
       # Mounted from the parent quant_mt5 repo so xfcevdi stays pure infra.
       - ../../runtime/home_storage:/home
+      # Local MT5 installer sources (gitignored in the parent repo). Mounted so
+      # mt5-install can stage the broker-branded IC Markets SC5 build.
+      - ../../data/downloads:/opt/mt5-setup:ro
       - type: tmpfs
         target: /dev/shm
         tmpfs:

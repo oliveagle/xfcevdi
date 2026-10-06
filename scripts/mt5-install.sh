@@ -42,6 +42,10 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Official CDN URLs (kept in sync with metaquotes.software.corp/mt5/mt5linux.sh)
 MT5_URL="${MT5_SETUP_URL:-https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe}"
+# Broker-branded local installer (e.g. IC Markets SC5). When set to an existing
+# file, it is staged into the cache instead of downloading the official
+# MetaQuotes web-installer; the auto-update cron keeps using it too.
+MT5_SETUP_LOCAL="${MT5_SETUP_LOCAL:-}"
 WEBVIEW2_URL="${WEBVIEW2_SETUP_URL:-https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/f2910a1e-e5a6-4f17-b52d-7faf525d17f8/MicrosoftEdgeWebview2Setup.exe}"
 # Wine prefix that holds the "MetaTrader 5" program directory (per user)
 MT5_PREFIX="${MT5_PREFIX:-$HOME/.mt5}"
@@ -126,6 +130,23 @@ fetch_cached() {
   return 0
 }
 
+# Stage a broker-branded local installer into the cache when MT5_SETUP_LOCAL is
+# set and readable. Returns 0 when staged (or already present), 1 to fall back
+# to the CDN.
+stage_local_setup() {
+  [ -n "$MT5_SETUP_LOCAL" ] || return 1
+  if [ ! -s "$MT5_SETUP_LOCAL" ]; then
+    warn "MT5_SETUP_LOCAL is set but not a readable file: $MT5_SETUP_LOCAL"
+    return 1
+  fi
+  mkdir -p "$MT5_CACHE_DIR"
+  if [ ! -s "$MT5_CACHE_DIR/mt5setup.exe" ] || ! cmp -s "$MT5_SETUP_LOCAL" "$MT5_CACHE_DIR/mt5setup.exe"; then
+    cp -f "$MT5_SETUP_LOCAL" "$MT5_CACHE_DIR/mt5setup.exe"
+    log "staged local installer: $MT5_SETUP_LOCAL -> $MT5_CACHE_DIR/mt5setup.exe ($(stat -c%s "$MT5_CACHE_DIR/mt5setup.exe") bytes)"
+  fi
+  return 0
+}
+
 init_wine_prefix() {
   # Configure the Wine prefix once (Windows 11 mode, like the official script).
   if [ ! -f "$MT5_PREFIX/system.reg" ]; then
@@ -159,7 +180,7 @@ do_install() {
 
   # 1) Make sure we have a usable web-installer in cache.
   local setup="$MT5_CACHE_DIR/mt5setup.exe"
-  if [ ! -s "$setup" ]; then
+  if ! stage_local_setup && [ ! -s "$setup" ]; then
     if ! fetch_cached "$MT5_URL" "$setup"; then
       if is_installed; then
         # Already installed, but we cannot fetch a newer installer right now.
@@ -215,12 +236,14 @@ case "$ACTION" in
 
   prefetch)
     # Best-effort: never fail the image build when the CDN is unreachable.
-    log "prefetching MT5 web-installer into $MT5_CACHE_DIR"
+    log "prefetching MT5 installer into $MT5_CACHE_DIR"
     mkdir -p "$MT5_CACHE_DIR"
-    if fetch_cached "$MT5_URL" "$MT5_CACHE_DIR/mt5setup.exe"; then
-      log "prefetch OK - installer cached"
-    else
-      warn "prefetch failed (CDN unreachable); MT5 will be downloaded at first container start"
+    if ! stage_local_setup; then
+      if fetch_cached "$MT5_URL" "$MT5_CACHE_DIR/mt5setup.exe"; then
+        log "prefetch OK - installer cached"
+      else
+        warn "prefetch failed (CDN unreachable); MT5 will be downloaded at first container start"
+      fi
     fi
     exit 0
     ;;
