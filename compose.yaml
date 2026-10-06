@@ -27,8 +27,11 @@ services:
         tmpfs:
           size: 2048000000 # 2GB
     ports:
-      # SSH host port: default 63774 (derived from machine-id); override via SSH_PORT=<n>
-      - "${SSH_PORT:-63774}:22"
+      # SSH host port: derived from /etc/machine-id, disjoint range [61000,62499]
+      # (see scripts/mt5/ssh_port.sh in the quant_mt5 repo). Fallback below is the
+      # canonical host's value; on other hosts always use scripts/mt5/deploy.sh or
+      # SSH_PORT=<n> so the port stays machine-unique.
+      - "${SSH_PORT:-61626}:22"
     # 7x24 log hygiene: rotate the docker json-file log so it cannot grow
     # without bound over months of continuous operation.
     logging:

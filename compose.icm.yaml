@@ -2,7 +2,7 @@ name: xfcevdi-icm
 
 # ISOLATED IC Markets environment for quant_mt5.
 #
-# Why this file exists: the shared xfcevdi_mt5 (compose.yaml, port 63774,
+# Why this file exists: the shared xfcevdi_mt5 (compose.yaml, port 61626,
 # image xfcevdi:prod, volume runtime/home_storage) is used by other agents /
 # workflows. The IC Markets broker-branded MT5 build must NOT be force-installed
 # onto that shared stack (it would change the terminal under everyone).
@@ -10,7 +10,7 @@ name: xfcevdi-icm
 # This compose spins up a fully isolated stack instead:
 #   container_name : xfcevdi_icm
 #   image          : xfcevdi-icm:prod   (built from the same Dockerfile)
-#   SSH host port  : 64217  (override via SSH_PORT_ICM=<n>)
+#   SSH host port  : 63281 (derived, disjoint range [62500,63999]; override via SSH_PORT_ICM=<n>)
 #   data volume    : runtime_icm/home_storage  (fresh Wine prefix, fresh MT5)
 #
 # First `up` auto-installs MT5 from the IC Markets SC5 installer (staged from
@@ -44,7 +44,9 @@ services:
         tmpfs:
           size: 2048000000 # 2GB
     ports:
-      - "${SSH_PORT_ICM:-64217}:22"
+      # SSH host port: derived from /etc/machine-id + ":icm" salt, disjoint range
+      # [62500,63999] (see scripts/mt5/ssh_port.sh --icm). Fallback = canonical host.
+      - "${SSH_PORT_ICM:-63281}:22"
     logging:
       driver: json-file
       options:
