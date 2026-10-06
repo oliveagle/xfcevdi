@@ -19,8 +19,8 @@ services:
         tmpfs:
           size: 2048000000 # 2GB
     ports:
-      # SSH host port: default 61473 (non-colliding); override via SSH_PORT=<n>
-      - "${SSH_PORT:-61473}:22"
+      # SSH host port: default 63774 (derived from machine-id); override via SSH_PORT=<n>
+      - "${SSH_PORT:-63774}:22"
     # 7x24 log hygiene: rotate the docker json-file log so it cannot grow
     # without bound over months of continuous operation.
     logging:
