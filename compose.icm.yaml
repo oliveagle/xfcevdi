@@ -1,0 +1,65 @@
+name: xfcevdi-icm
+
+# ISOLATED IC Markets environment for quant_mt5.
+#
+# Why this file exists: the shared xfcevdi_mt5 (compose.yaml, port 63774,
+# image xfcevdi:prod, volume runtime/home_storage) is used by other agents /
+# workflows. The IC Markets broker-branded MT5 build must NOT be force-installed
+# onto that shared stack (it would change the terminal under everyone).
+#
+# This compose spins up a fully isolated stack instead:
+#   container_name : xfcevdi_icm
+#   image          : xfcevdi-icm:prod   (built from the same Dockerfile)
+#   SSH host port  : 64217  (override via SSH_PORT_ICM=<n>)
+#   data volume    : runtime_icm/home_storage  (fresh Wine prefix, fresh MT5)
+#
+# First `up` auto-installs MT5 from the IC Markets SC5 installer (staged from
+# the repo's data/downloads mount) - see scripts/mt5-install.sh MT5_SETUP_LOCAL.
+#
+# Use:  docker compose -f compose.icm.yaml up -d
+#       docker compose -f compose.icm.yaml down
+services:
+  xfcevdi:
+    build: .
+    image: xfcevdi-icm:prod
+    tty: true
+    container_name: xfcevdi_icm
+    restart: unless-stopped
+    environment:
+      USERNAME: trader
+      PASS: abc
+      # First boot installs MT5 from the IC Markets SC5 installer.
+      MT5_INSTALL: "yes"
+      MT5_AUTOUPDATE: "yes"
+      # IC Markets SC5 broker installer - never the MetaQuotes CDN default.
+      MT5_SETUP_LOCAL: /opt/mt5-setup/icmarketssc5setup.exe
+    volumes:
+      # ISOLATED persistent home - do NOT share runtime/home_storage with the
+      # shared xfcevdi_mt5 stack (46G, other agents depend on it).
+      - ../../runtime_icm/home_storage:/home
+      # Local MT5 installer sources (gitignored in the parent repo).
+      - ../../data/downloads:/opt/mt5-setup:ro
+      - type: tmpfs
+        target: /dev/shm
+        tmpfs:
+          size: 2048000000 # 2GB
+    ports:
+      - "${SSH_PORT_ICM:-64217}:22"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          grep -q '"ok":true' /home/trader/.mt5/control/health.json 2>/dev/null
+          && test $(( $(date +%s) - $(stat -c %Y /home/trader/.mt5/control/health.json 2>/dev/null || echo 0) )) -lt 60
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+
+networks:
+  xfce_vdi_network:

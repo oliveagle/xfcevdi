@@ -134,6 +134,12 @@ fetch_cached() {
 # set and readable. Returns 0 when staged (or already present), 1 to fall back
 # to the CDN.
 stage_local_setup() {
+  # Fall back to the well-known repo mount even when MT5_SETUP_LOCAL was not
+  # exported through a login shell / cron (su -l clears the environment).
+  if [ -z "$MT5_SETUP_LOCAL" ] && [ -s "/opt/mt5-setup/icmarketssc5setup.exe" ]; then
+    MT5_SETUP_LOCAL="/opt/mt5-setup/icmarketssc5setup.exe"
+    log "MT5_SETUP_LOCAL unset; using mounted broker installer $MT5_SETUP_LOCAL"
+  fi
   [ -n "$MT5_SETUP_LOCAL" ] || return 1
   if [ ! -s "$MT5_SETUP_LOCAL" ]; then
     warn "MT5_SETUP_LOCAL is set but not a readable file: $MT5_SETUP_LOCAL"
@@ -156,6 +162,36 @@ init_wine_prefix() {
     WINEPREFIX="$MT5_PREFIX" winecfg -v=win11 >/dev/null 2>&1 || true
   fi
 }
+
+# Broker-branded installers (e.g. IC Markets SC5) install the terminal into a
+# branded directory like "MetaTrader 5 IC Markets Global" instead of the vanilla
+# "MetaTrader 5". Everything else in this image (supervisord, mt5_probe, the
+# backtest scripts) hard-codes the canonical "MetaTrader 5" path, so normalize
+# it: if the canonical dir is missing but exactly one branded "MetaTrader 5*"
+# dir with a terminal exists, symlink the canonical path to it.
+canonical_terminal_dir() {
+  printf '%s/drive_c/Program Files/MetaTrader 5\n' "$MT5_PREFIX"
+}
+
+link_canonical_terminal() {
+  local progdir brand_dir
+  progdir="$(dirname "$(canonical_terminal_dir)")"
+  [ -x "$MT5_TERMINAL" ] && return 0     # canonical path already resolves
+  [ -d "$progdir" ] || return 0
+  # Only if canonical is truly absent (not a broken symlink)
+  if [ -L "$progdir/MetaTrader 5" ]; then
+    return 0
+  fi
+  if [ -e "$progdir/MetaTrader 5" ]; then
+    return 0
+  fi
+  brand_dir="$(find "$progdir" -mindepth 1 -maxdepth 1 -type d -name 'MetaTrader 5*' -exec test -x '{}/terminal64.exe' ';' -print 2>/dev/null | head -n1)"
+  [ -n "$brand_dir" ] || return 1
+  ln -s "$brand_dir" "$progdir/MetaTrader 5"
+  log "normalized branded install: $progdir/MetaTrader 5 -> $brand_dir"
+  return 0
+}
+
 
 install_webview2() {
   [ "$MT5_INSTALL_WEBVIEW2" = "yes" ] || return 0
@@ -208,6 +244,9 @@ do_install() {
     fi
   }
 
+  # Broker-branded installers land in a branded dir; normalize the canonical path.
+  link_canonical_terminal || true
+
   if is_installed; then
     write_stamp
     log "MetaTrader 5 ready: $MT5_TERMINAL"
@@ -222,6 +261,7 @@ do_install() {
 main() {
 case "$ACTION" in
   check)
+    link_canonical_terminal || true
     if ! is_installed; then
       die "MetaTrader 5 NOT installed at $MT5_TERMINAL"
     fi
@@ -249,6 +289,7 @@ case "$ACTION" in
     ;;
 
   install)
+    link_canonical_terminal || true
     if is_installed && [ "$FORCE" != "1" ]; then
       local fp; fp="$(setup_fingerprint)"
       if [ -n "$fp" ] && stamp_matches "$fp"; then
@@ -257,6 +298,18 @@ case "$ACTION" in
       fi
       if [ -z "$fp" ]; then
         log "MetaTrader 5 installed; no cached installer to compare - skipping"
+        exit 0
+      fi
+      # Self-heal: a prior failed install may have produced the terminal but
+      # died before write_stamp. In that case the cache matches what we just
+      # installed - treat it as up to date instead of looping "upgrade".
+      # Detection heuristic: the terminal is recent relative to the installer.
+      local setup_age terminal_age
+      setup_age=$(stat -c %Y "$MT5_CACHE_DIR/mt5setup.exe" 2>/dev/null || echo 0)
+      terminal_age=$(stat -c %Y "$MT5_TERMINAL" 2>/dev/null || echo 0)
+      if [ "$terminal_age" -ge "$setup_age" ]; then
+        write_stamp
+        log "MetaTrader 5 already installed and up to date - skipping (stamp self-healed)"
         exit 0
       fi
       log "MetaTrader 5 installed, newer installer detected - upgrading"

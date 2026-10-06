@@ -11,14 +11,17 @@ if [ ! -f /app/.setup_done ]; then
   echo "[entry] first boot: creating user '${USERNAME:-trader}'..."
   sudo USERNAME="${USERNAME:-trader}" USER_ID="${USER_ID:-1000}" \
        ALLOW_APT="${ALLOW_APT:-yes}" ENTER_PASS="${ENTER_PASS:-no}" \
-       PASS="${PASS:-abc}" MT5_INSTALL=no MT5_AUTOUPDATE=no /app/setup.sh \
+       PASS="${PASS:-abc}" MT5_INSTALL="${MT5_INSTALL:-no}" MT5_AUTOUPDATE="${MT5_AUTOUPDATE:-no}" /app/setup.sh \
        || echo "[entry] WARN setup.sh failed"
 fi
 
 mkdir -p /run /run/sshd
 # Host-visible control/logs dirs for health + autotrading switch + trade log
 mkdir -p /home/trader/.mt5/control /home/trader/.mt5/logs /home/trader/.mt5/logs/supervisor
-chown -R trader:trader /home/trader/.mt5/control /home/trader/.mt5/logs
+# Own the whole .mt5 tree (not just subdirs): a fresh mount may carry a
+# root-owned .mt5 from an earlier boot, which makes Wine refuse the prefix
+# ("'/home/trader/.mt5' is not owned by you").
+chown -R trader:trader /home/trader/.mt5
 # Persist supervisord logs (and child program logs) on the mounted volume so
 # they survive container recreate / image update (7x24 post-mortem capability).
 rm -rf /var/log/supervisor

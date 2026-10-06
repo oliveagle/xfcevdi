@@ -52,9 +52,24 @@ echo "$USERNAME:$PASS" | chpasswd
 # its Wine prefix lives in the user's persistent home.
 if [ "${MT5_INSTALL:-yes}" = "yes" ]; then
   echo "Info: installing MetaTrader 5 for user '${USERNAME}'..."
-  if ! su -l "$USERNAME" -c "/usr/local/bin/mt5-install"; then
+  # The IC Markets SC5 installer is a GUI app: it needs an X display to run
+  # under Wine. On first boot supervisord (and its Xvfb) is NOT up yet, and
+  # `su -l` clears DISPLAY, so bring up a throwaway Xvfb here and re-export
+  # DISPLAY inside the login shell. It is torn down right after the install;
+  # supervisord starts its own Xvfb :99 later.
+  _TMP_XVFB=""
+  if ! pgrep -x Xvfb >/dev/null 2>&1; then
+    echo "Info: starting temporary Xvfb for MT5 install..."
+    Xvfb :99 -screen 0 1280x1024x24 -nolisten tcp &
+    _TMP_XVFB="$!"
+    sleep 1
+  fi
+  if ! su -l "$USERNAME" -c "export DISPLAY=:99; /usr/local/bin/mt5-install"; then
     echo "Warn: MetaTrader 5 install failed (CDN may be unreachable)." >&2
     echo "      The terminal can be installed later:  mt5-install" >&2
+  fi
+  if [ -n "$_TMP_XVFB" ]; then
+    kill "$_TMP_XVFB" 2>/dev/null || true
   fi
 fi
 
