@@ -86,6 +86,29 @@ docker compose up
 
 Connect with the X2Go client to `localhost:61626`, user `trader` (or `user` by default), then launch **MetaTrader 5** from the applications menu.
 
+### Remote desktop: VNC (x11vnc)
+
+Besides X2Go, the container runs `x11vnc` against the supervisord-managed
+`Xvfb :99` display, so the same desktop is also reachable over plain VNC.
+
+- in container: `0.0.0.0:5900`, process `mt5-stack:x11vnc`
+  (managed by `[program:x11vnc]` in `supervisord-mt5.conf`)
+- host port: `VNC_PORT_ICM` (default **5990**) for the isolated IC Markets
+  stack (`compose.icm.yaml`); the shared stack does not publish a VNC port
+- password: `VncIcm2026` (passed with `-passwd` in the supervisor config)
+
+From anywhere that can reach the host (e.g. the `10.126.0.0/16` VPN subnet):
+
+```sh
+vncviewer 10.126.126.4:5990          # any VNC client, prompt for password
+# or headless frame grab:
+vncdo -s 10.126.126.4::5990 -p VncIcm2026 capture /tmp/desktop.png
+```
+
+`docker compose -f compose.icm.yaml up -d --build` re-creates the container
+with the port mapping and the `x11vnc` supervisor program; the VNC password is
+baked into the image config, so regenerate it (and rebuild) if leaked.
+
 ## Development & testing
 
 The full "build → lint → test" workflow is automated:

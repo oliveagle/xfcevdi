@@ -47,6 +47,11 @@ services:
       # SSH host port: derived from /etc/machine-id + ":icm" salt, disjoint range
       # [62500,63999] (see scripts/mt5/ssh_port.sh --icm). Fallback = canonical host.
       - "${SSH_PORT_ICM:-63281}:22"
+      # VNC to the container's Xvfb :99 display (x11vnc is baked into the
+      # image and run by supervisord-mt5.conf [program:x11vnc]).
+      # Host port 5990 avoids the host's own VNC 5901 / X2Go stack.
+      # See README "Remote desktop: VNC (x11vnc)".
+      - "${VNC_PORT_ICM:-5990}:5900"
     logging:
       driver: json-file
       options:

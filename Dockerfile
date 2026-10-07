@@ -393,7 +393,8 @@ RUN set -eux; \
     DEBIAN_FRONTEND=noninteractive apt-get update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         supervisor \
-        xvfb; \
+        xvfb \
+        x11vnc; \
     rm -rf /var/lib/apt/lists/*
 
 COPY ./supervisord-mt5.conf /etc/supervisor/conf.d/mt5.conf
@@ -415,4 +416,6 @@ RUN set -eux; \
 # Keep the MT5 Wine data (persistent volume) accessible to trader at runtime.
 ENV SUPERVISOR_CONF=/etc/supervisor/conf.d/mt5.conf
 EXPOSE 22
+# x11vnc exposes Xvfb :99 for remote VNC clients (host-mapped by compose.icm.yaml)
+EXPOSE 5900
 CMD ["/bin/bash", "/app/prod-entry.sh"]
