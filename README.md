@@ -93,16 +93,16 @@ Besides X2Go, the container runs `x11vnc` against the supervisord-managed
 
 - in container: `0.0.0.0:5900`, process `mt5-stack:x11vnc`
   (managed by `[program:x11vnc]` in `supervisord-mt5.conf`)
-- host port: `VNC_PORT_ICM` (default **5990**) for the isolated IC Markets
+- host port: `VNC_PORT_ICM` (default **64090**) for the isolated IC Markets
   stack (`compose.icm.yaml`); the shared stack does not publish a VNC port
 - password: `VncIcm2026` (passed with `-passwd` in the supervisor config)
 
 From anywhere that can reach the host (e.g. the `10.126.0.0/16` VPN subnet):
 
 ```sh
-vncviewer 10.126.126.4:5990          # any VNC client, prompt for password
+vncviewer 10.126.126.4:64090         # any VNC client, prompt for password
 # or headless frame grab:
-vncdo -s 10.126.126.4::5990 -p VncIcm2026 capture /tmp/desktop.png
+vncdo -s 10.126.126.4::64090 -p VncIcm2026 capture /tmp/desktop.png
 ```
 
 `docker compose -f compose.icm.yaml up -d --build` re-creates the container

@@ -49,9 +49,11 @@ services:
       - "${SSH_PORT_ICM:-63281}:22"
       # VNC to the container's Xvfb :99 display (x11vnc is baked into the
       # image and run by supervisord-mt5.conf [program:x11vnc]).
-      # Host port 5990 avoids the host's own VNC 5901 / X2Go stack.
+      # Host port 64090: dedicated VNC range [64000,64999], above the
+      # ephemeral range (32768-60999) and the SSH reserved ranges
+      # ([61000,62499] shared / [62500,63999] icm) -> collision-resistant.
       # See README "Remote desktop: VNC (x11vnc)".
-      - "${VNC_PORT_ICM:-5990}:5900"
+      - "${VNC_PORT_ICM:-64090}:5900"
     logging:
       driver: json-file
       options:
