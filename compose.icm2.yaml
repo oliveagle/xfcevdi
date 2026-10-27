@@ -1,0 +1,49 @@
+name: xfcevdi-icm2
+
+# SECOND isolated IC Markets stack, dedicated to live tick downloads.
+# Runs in parallel with xfcevdi_icm (63281) so the other agent's backtests
+# on xfcevdi_icm never block the bulk tick download.
+#   container_name : xfcevdi_icm2
+#   image          : xfcevdi-icm2:prod
+#   SSH host port  : 63282
+#   data volume    : runtime_icm2/home_storage
+services:
+  xfcevdi:
+    build: .
+    image: xfcevdi-icm2:prod
+    tty: true
+    container_name: xfcevdi_icm2
+    restart: unless-stopped
+    environment:
+      USERNAME: trader
+      PASS: abc
+      MT5_INSTALL: "yes"
+      MT5_AUTOUPDATE: "yes"
+      MT5_SETUP_LOCAL: /opt/mt5-setup/icmarketssc5setup.exe
+    volumes:
+      - ../../runtime_icm2/home_storage:/home
+      - ../../data/downloads:/opt/mt5-setup:ro
+      - type: tmpfs
+        target: /dev/shm
+        tmpfs:
+          size: 2048000000
+    ports:
+      - "63282:22"
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          grep -q '"ok":true' /home/trader/.mt5/control/health.json 2>/dev/null
+          && test $(( $(date +%s) - $(stat -c %Y /home/trader/.mt5/control/health.json 2>/dev/null || echo 0) )) -lt 60
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+
+networks:
+  xfce_vdi_network:
